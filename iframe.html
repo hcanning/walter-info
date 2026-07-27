@@ -1,0 +1,24 @@
+<!--
+  Paste this into WordPress as Custom HTML (or Text/HTML mode).
+  Classic Visual WYSIWYG often strips the <script> — without it the iframe
+  stays at min-height and won't auto-grow with tab changes.
+-->
+<iframe
+  id="walter-info"
+  src="https://hcanning.github.io/walter-info/"
+  title="Walter AI Onboarding Guide — Boston University"
+  loading="lazy"
+  style="width:100%;max-width:100%;border:0;display:block;min-height:160vh;"
+></iframe>
+<script>
+(function () {
+  var frame = document.getElementById("walter-info");
+  if (!frame) return;
+  window.addEventListener("message", function (e) {
+    if (e.origin !== "https://hcanning.github.io") return;
+    if (!e.data || e.data.type !== "walter-info-height") return;
+    var h = Number(e.data.height);
+    if (h > 0) frame.style.height = h + "px";
+  });
+})();
+</script>
