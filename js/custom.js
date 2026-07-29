@@ -143,22 +143,23 @@
 (function () {
   if (window.parent === window) return;
 
-  // Collapse html/body first so scrollHeight can shrink after a tall tab.
-  // Otherwise the stretched iframe viewport keeps reporting the old height.
+  // Measure laid-out content only — never documentElement.scrollHeight/offsetHeight.
+  // Inside an iframe those match the iframe viewport, so height can grow but never shrink.
   function reportHeight() {
-    var html = document.documentElement;
-    var body = document.body;
-    var prevHtml = html.style.height;
-    var prevBody = body.style.height;
-    html.style.height = '0';
-    body.style.height = '0';
-
-    var h = Math.ceil(Math.max(body.scrollHeight, html.scrollHeight));
-
-    html.style.height = prevHtml;
-    body.style.height = prevBody;
-
-    window.parent.postMessage({ type: 'walter-info-height', height: h }, '*');
+    var bottom = 0;
+    var kids = document.body.children;
+    for (var i = 0; i < kids.length; i++) {
+      var el = kids[i];
+      var style = window.getComputedStyle(el);
+      if (style.display === 'none' || style.visibility === 'hidden') continue;
+      if (style.position === 'fixed') continue;
+      var rect = el.getBoundingClientRect();
+      if (rect.bottom > bottom) bottom = rect.bottom;
+    }
+    var h = Math.ceil(bottom + window.pageYOffset);
+    if (h > 0) {
+      window.parent.postMessage({ type: 'walter-info-height', height: h }, '*');
+    }
   }
 
   var scheduled = false;
