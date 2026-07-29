@@ -74,6 +74,7 @@
       panels.forEach(function(p){p.classList.remove('active');});
       btn.classList.add('active');
       document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      document.dispatchEvent(new CustomEvent('walter:layout'));
     });
   });
 
@@ -131,7 +132,10 @@
     ucDetails.forEach(function(d){ d.classList.toggle('active', d.dataset.uc === key); });
   }
   ucPills.forEach(function(p){
-    p.addEventListener('click', function(){ selectUC(p.dataset.uc); });
+    p.addEventListener('click', function(){
+      selectUC(p.dataset.uc);
+      document.dispatchEvent(new CustomEvent('walter:layout'));
+    });
   });
   selectUC('roleplay');
 })();
@@ -139,13 +143,21 @@
 (function () {
   if (window.parent === window) return;
 
+  // Collapse html/body first so scrollHeight can shrink after a tall tab.
+  // Otherwise the stretched iframe viewport keeps reporting the old height.
   function reportHeight() {
-    var h = Math.ceil(Math.max(
-      document.documentElement.scrollHeight,
-      document.body.scrollHeight,
-      document.documentElement.offsetHeight,
-      document.body.offsetHeight
-    ));
+    var html = document.documentElement;
+    var body = document.body;
+    var prevHtml = html.style.height;
+    var prevBody = body.style.height;
+    html.style.height = '0';
+    body.style.height = '0';
+
+    var h = Math.ceil(Math.max(body.scrollHeight, html.scrollHeight));
+
+    html.style.height = prevHtml;
+    body.style.height = prevBody;
+
     window.parent.postMessage({ type: 'walter-info-height', height: h }, '*');
   }
 
@@ -159,12 +171,16 @@
     });
   }
 
-  window.addEventListener('load', schedule);
-  window.addEventListener('resize', schedule);
-  document.addEventListener('click', function () {
+  function scheduleAfterLayout() {
+    schedule();
     setTimeout(schedule, 50);
     setTimeout(schedule, 300);
-  });
+  }
+
+  window.addEventListener('load', scheduleAfterLayout);
+  window.addEventListener('resize', schedule);
+  document.addEventListener('walter:layout', scheduleAfterLayout);
+  document.addEventListener('click', scheduleAfterLayout);
 
   if (typeof ResizeObserver !== 'undefined') {
     new ResizeObserver(schedule).observe(document.body);
